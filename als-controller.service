@@ -1,0 +1,19 @@
+[Unit]
+Description=Ambient Light Sensor on Asus Zenbook to control LCD auto-brightness
+After=multi-user.target graphical.target
+
+[Service]
+User=root
+Type=simple
+# In the following line, the username xubuntu should be changed to the actual username.
+Environment="XAUTHORITY=/home/xubuntu/.Xauthority"
+Environment="DISPLAY=:0"
+# In the following line, the username xubuntu should be changed to the actual username.
+ExecStart=/usr/bin/python3 /home/xubuntu/als-controller.py
+Restart=always
+RestartSec=5
+StandardOutput=null
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
