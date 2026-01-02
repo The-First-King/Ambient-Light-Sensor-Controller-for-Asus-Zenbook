@@ -1,8 +1,8 @@
-# Short Description
+# Ambient Light Sensor Controller for Asus Zenbook
 
 The three files together implement an automatic brightness controller for Asus Zenbook laptops. The Python script (als-controller.py) continuously reads the ambient light sensor and adjusts screen brightness accordingly. The shell script (als_toggle.sh) provides a simple on/off toggle for enabling or disabling the controller. The systemd service file (als-controller.service) ensures the Python controller runs automatically in the background at startup.
 
-# ALS Controller Functionality Breakdown
+## ALS Controller Functionality Breakdown
 
 1. als-controller.py
 
@@ -52,14 +52,14 @@ The three files together implement an automatic brightness controller for Asus Z
 	
 All together, they provide a complete auto-brightness solution. The Python script does the actual work. The service ensures it runs continuously. The shell script gives you manual control.
 
-# Tested Platforms
+## Tested Platforms
 
 * Xubuntu 20.04 (Linux 5.15.0) running on Asus UX32.
 * Xubuntu 24.04 (Linux 6.14.0) running on Asus UX32.
 
 In theory, it should work on other Ultrabooks in this series where the same ALS driver is used.
 
-# Recommended XFCE Power Manager Display Settings
+## Recommended XFCE Power Manager Display Settings
 
 The script has been designed to be applied to the following settings when running on battery:
 
@@ -67,7 +67,7 @@ The script has been designed to be applied to the following settings when runnin
 <img src="https://github.com/The-First-King/Ambient-Light-Sensor-Controller-for-Asus-Zenbook/blob/main/XFCE%20Power%20Manager%20Display%20settings.png?raw=true" alt="XFCE Power Manager Display settings" />
 </div>
 
-# Installation Steps
+## Installation Steps
 
 By default, Ubuntu releases do not include the ALS driver to support the ALS sensor on Asus Zenbooks. The first step can be skipped if the driver is already installed.
 
@@ -122,7 +122,7 @@ By default, Ubuntu releases do not include the ALS driver to support the ALS sen
 
    Go to **Settings Manager** → **Keyboard** → **Application Shortcuts** → **Add**, and in the command field select the path to als_toggle.sh.
 
-# Uninstallation Steps
+## Uninstallation Steps
 
 1. Stop and remove the service.
 
@@ -144,3 +144,35 @@ By default, Ubuntu releases do not include the ALS driver to support the ALS sen
    sudo dkms remove -m als -v master --all
    sudo rm -r /usr/src/als-master
    </pre>
+
+## Known Issue
+
+System hibernation fails when the NVIDIA GPU is active. This is a classic conflict between the ACPI state (the hardware driver sensor) and the NVIDIA proprietary driver.
+
+When the Intel GPU is used, the kernel manages power transitions more gracefully. However, the NVIDIA driver is notoriously sensitive to hardware states that change 'underneath' it. By manually echoing 1 to ACPI0008:00/enable, the sensor is put into a state that the NVIDIA driver does not expect or know how to re-initialize during the resume cycle, leading to a kernel panic.
+
+To fix this, we must ensure the sensor is disabled immediately before hibernation and re-enabled only after the NVIDIA driver has completed its resume process.
+
+**Workaround:** Disable the als-controller service when switching to the high-performance GPU.
+
+**Switch to NVIDIA GPU**
+
+Run this command to switch to the NVIDIA GPU before your next reboot:
+
+<pre>
+sudo systemctl stop als-controller.service && sudo systemctl disable als-controller.service && sudo prime-select nvidia
+</pre>
+
+**Switch to Intel GPU**
+
+Run this command to switch back to the Intel GPU before your next reboot:
+	
+<pre>
+sudo prime-select intel && sudo systemctl enable als-controller.service
+</pre>
+
+Run the following command after reboot when the Intel GPU is in use:
+
+<pre>
+echo 1 | sudo tee /sys/bus/acpi/devices/ACPI0008:00/enable > /dev/null
+</pre>
